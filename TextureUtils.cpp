@@ -1,6 +1,8 @@
 
 
 #include "TextureUtils.h"
+#include <osg/ShapeDrawable>
+#include <osgDB/ReadFile>
 
 
 void TexCoordGenerator::apply(osg::Geode& node)
@@ -77,4 +79,44 @@ void createTexture2DState(osg::ref_ptr<osg::Image> image, osg::ref_ptr<osg::Stat
 	texture->setWrap(osg::Texture::WRAP_T, osg::Texture::REPEAT);
 
 	stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+}
+
+
+//地形
+void createTerrain(osg::ref_ptr<osg::Geode>& geo)
+{
+	//texture
+	osg::ref_ptr<osg::StateSet> stateset = geo->getOrCreateStateSet();
+	osg::ref_ptr<osg::Image> image = osgDB::readRefImageFile("J:\\OSG\\data\\Images/lz.rgb");
+	if (image)
+	{
+		osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
+		texture->setImage(image);
+		texture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
+		stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+	}
+	//
+	stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);
+	//
+	osg::ref_ptr<osg::HeightField> grid = new osg::HeightField;
+	
+		grid->allocate(38, 39);  //cell数量
+		grid->setXInterval(0.021f); //cell宽
+		grid->setYInterval(0.038f); //cell高
+
+		for (unsigned int r = 0; r<39; ++r)
+		{
+			for (unsigned int c = 0; c<38; ++c)
+			{
+				//                grid->setHeight(c,r,vertex[r+c*39][2]);
+				grid->setHeight(c, r, 1);
+				if (c == r)
+				{
+					grid->setHeight(c, r, 3);
+				}
+			}
+		}	
+	grid->setBorderWidth(10);
+	grid->setSkirtHeight(20);//裙边
+	geo->addDrawable(new osg::ShapeDrawable(grid));
 }
