@@ -3,7 +3,8 @@
 #include "TextureUtils.h"
 #include <osg/ShapeDrawable>
 #include <osgDB/ReadFile>
-
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 void TexCoordGenerator::apply(osg::Geode& node)
 {
@@ -119,4 +120,62 @@ void createTerrain(osg::ref_ptr<osg::Geode>& geo)
 	grid->setBorderWidth(10);
 	grid->setSkirtHeight(20);//裙边
 	geo->addDrawable(new osg::ShapeDrawable(grid));
+}
+
+//计算两个向量夹角
+float getRadianOf3D(osg::Vec3f line1, osg::Vec3f line2, osg::Vec3f direction)
+{
+	line1.normalize();
+	line2.normalize();
+	float temp = (line1 * line2);
+	// 1和-1时为0和180°
+	float f = fabs(fabs(temp) - 1);
+	float epsilon = std::numeric_limits<float>::epsilon();
+	if (f< epsilon)
+	{
+		return temp > 0 ? 0 : osg::PI;
+	}
+	float angle = (float)acos(temp);
+
+	//// 两个向量的叉乘结果与屏幕方向是否一致来判断角度是否超过180°
+	//osg::Vec3f axis = line1 ^ line2;
+	//return axis * direction > 0 ? angle : 2 * osg::PI - angle;
+	return angle;
+}
+
+
+void getRadianOf2D(osg::Vec3& pre, osg::Vec3& cur, osg::Vec3& next, float ret[])
+{
+	osg::Vec3 v0 = cur - pre;
+	osg::Vec3 v1 = next - cur;
+	float H = std::atan2(v1.y(), v1.x()) - std::atan2(v0.y(), v0.x());
+	float V = std::atan2(v1.y(), v1.z()) - std::atan2(v0.y(), v0.z());
+	ret[0] = H;
+	ret[1] = V;
+}
+
+//计算长度
+float calcCir(osg::Vec3& pre, osg::Vec3& cur, osg::Vec3& next)
+{
+
+	osg::Vec3 v0 = cur - pre;
+	osg::Vec3 v1 = next - cur;
+	float rad = getRadianOf3D(v0, v1, osg::Vec3(0, 1, 0));
+
+	float x0 = cur.x();
+	float y0 = cur.y();
+	float z0 = cur.z();
+	float x1 = next.x();
+	float y1 = next.y();
+	float z1 = next.z();
+
+	float len = std::sqrtf(std::powf((x1 - x0), 2.0) + std::powf((y1 - y0), 2.0));
+	float length = std::sqrtf(std::powf(len, 2.0) + std::powf((z1 - z0), 2.0)) / 2.0;
+	float a = rad / 2.0;
+	float radius = length / std::sinf(a);
+	float c = 2 * M_PI*radius;
+	float rate = osg::RadiansToDegrees(rad) / 360;
+	c = c*rate;
+	c = c < 0 ? 0 - c : c;
+	return c;
 }
